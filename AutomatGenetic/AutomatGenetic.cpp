@@ -5,6 +5,34 @@
 #include <random>
 #include <list>
 #include <algorithm>
+#define _USE_MATH_DEFINES
+#include <math.h>
+
+namespace math_functions {
+	double Rosenbrock(double x, double y) {
+		return pow((1 - x), 2) + 100 * pow((y - x * x), 2);
+	}
+
+	double Rastrigin(double x, double y) {
+		return 20 + x * x + y * y - 10 * (cos(2 * M_PI * x) + cos(2 * M_PI * y));
+	}
+
+	double Ackley(double x, double y) {
+		return -20 * exp(-0.2 * sqrt(0.5 * (x * x + y * y))) - exp(0.5 * (cos(2 * M_PI * x) + cos(2 * M_PI * y))) + exp(1) + 20;
+	}
+
+	double Sphere(double x, double y) {
+		return x * x + y * y;
+	}
+
+	double Himmelblau(double x, double y) {
+		return pow((x * x + y - 11), 2) + pow((x + y * y - 7), 2);
+	}
+
+	double Holder(double x, double y) {
+		return -1 * abs(sin(x) * cos(y) * exp(abs(1 - (sqrt(x * x + y * y)) / M_PI)));
+	}
+}
 
 class Individ {
 public:
@@ -14,7 +42,7 @@ public:
 	double y;
 	double score;
 	long mutationSteps;
-
+	double (*function)(double, double);
 public:
 
 	bool operator< (const Individ& ind) const {
@@ -22,7 +50,7 @@ public:
 		else return false;
 	}
 
-	Individ(double start, double end, long mutationSteps) {
+	Individ(double start, double end, long mutationSteps, double (*function)(double, double)) {
 		this->start = start;
 		this->end = end;
 		this->mutationSteps = mutationSteps;
@@ -32,15 +60,11 @@ public:
 		std::uniform_real_distribution<> distr(start, end);
 		this->x = distr(gen);
 		this->y = distr(gen);
+		this->function = function;
 	}
 
 	void calculateSelf() {
 		score = function(x, y);
-	}
-
-
-	double function(double x, double y) {
-		return x * x + y * y;
 	}
 
 	void mutate() {
@@ -114,10 +138,12 @@ private:
 	long end;
 	double bestScore;
 	double* xy;
+	double (*function)(double, double);
 public:
 	Genetic(long numberOfIndividums,
 		double crossoverRate, long mutationSteps,
 		double chanceMutations, long numberLives,
+		double (*function)(double, double),
 		long start, long end)
 	{
 		this->numberOfIndividums = numberOfIndividums;
@@ -125,6 +151,7 @@ public:
 		this->mutationSteps = mutationSteps;
 		this->chanceMutations = chanceMutations;
 		this->numberLives = numberLives;
+		this->function = function;
 		this->start = start;
 		this->end = end;
 		this->bestScore = std::numeric_limits<double>::infinity();
@@ -147,8 +174,8 @@ public:
 
 	std::vector<Individ> crossover(Individ parent1, Individ parent2)
 	{
-		Individ child1 = Individ(start, end, mutationSteps);
-		Individ child2 = Individ(start, end, mutationSteps);
+		Individ child1 = Individ(start, end, mutationSteps, function);
+		Individ child2 = Individ(start, end, mutationSteps, function);
 		std::random_device rand_dev;
 		std::mt19937 generator(rand_dev());
 		std::uniform_real_distribution<double> alpha = std::uniform_real_distribution<double>(0.01, 1);
@@ -179,7 +206,7 @@ public:
 		long j = 0;
 		for (; i < numberOfIndividums; i++)
 		{
-			population.push_back(Individ(pack[0], pack[1], ceil(pack[2])));
+			population.push_back(Individ(pack[0], pack[1], ceil(pack[2]), function));
 		}
 		srand(time(NULL));
 		for (i = 0; i < numberLives; i++)
@@ -235,9 +262,10 @@ public:
 int main()
 {
 	setlocale(LC_ALL, "Ru");
-	Genetic* a = new Genetic(500, 0.5, 15, 0.4, 200, -5, 5);
+	Genetic* a = new Genetic(500, 0.5, 15, 0.4, 200, math_functions::Himmelblau, -5, 5);
 	a->startGenetic();
 	std::cout << "ÎÏÒÈÌÈÇÈÐÎÂÀÍÍÎÅ ÇÍÀ×ÅÍÈÅ ÔÓÍÊÖÈÈ: [" << a->getXY()[0] << ", " << a->getXY()[1] << "] " << a->getBestScore() << "\n";
+	system("pause");
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu
